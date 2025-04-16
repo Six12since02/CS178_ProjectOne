@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Genre</title>
+</head>
+<body>
+    <h1>Select a Genre</h1>
+    <form action="{{ url_for('redirect_genre') }}" method="post">
+        <label for="genre">Choose a genre:</label>
+        <select name="genre" id="genre">
+            {% for genre in genres %}
+                <option value="{{ genre }}">{{ genre }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>

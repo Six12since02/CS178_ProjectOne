@@ -4,9 +4,10 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 
 app = Flask(__name__)
 
-@app.route ('/')
-def hello():
-    return '<h2>Hello from Flask!</h2>'
+@app.route('/')
+def home():
+    return render_template('home.html')
+
 
 @app.route ('/about')
 def about():
@@ -69,14 +70,18 @@ def display_html(rows):
     html += "</table></body>"
     return html
 
-def display_htmlr(rows):
+#display the results from the genres query
+def genres_html(rows, genre):
     html = ""
-    html += """<table><tr><th>Country Name</th>"""
+    html += '<p><a href="/">Back to Home</a></p>'
+    html += f"<h2>{genre} Movies</h2>"
+    html += "<table>"
 
     for r in rows:
-        html += "<tr><td>" + str(r[0]) + "</td><td>"
+        html += "<tr><td>" + str(r[0]) + "</td></tr>"
     html += "</table></body>"
     return html
+
 
 @app.route("/viewdb")
 def viewdb():
@@ -85,31 +90,34 @@ def viewdb():
                          LIMIT 500""")
     return display_html(rows)
 
-@app.route("/cont")
-def cont():
-    rows = execute_query("""SELECT country_name
-                         FROM country
-                         """)
-    return display_htmlr(rows)
+#### Start ChatGPT code ####
+# ChatGPT code to chose genre
 
-@app.route("/pricequery/<price>")
-def viewprices(price):
-    rows = execute_query("""select ArtistId, Artist.Name, Track.Name, UnitPrice, Milliseconds
-            from Artist JOIN Album using (ArtistID) JOIN Track using (AlbumID)
-            where UnitPrice = %s order by Track.Name 
-            Limit 500""", (str(price)))
-    return display_html(rows) 
+# I added all genres from the database into this list
+genre_list = [ "Adventure", "Fantasy", "Animation", "Drama", "Horror", "Action", "Comedy", "History", "Western", "Thriller", "Crime", "Documentary", "Science Fiction", "Mystery", "Music", "Romance", "Family", "War", "Foreign", "TV Movie" ]
 
-from flask import request
+@app.route('/genrequery')
+def index():
+    return render_template('select_genre.html', genres=genre_list)
+
+@app.route('/redirect_genre', methods=['POST'])
+def redirect_genre():
+    selected_genre = request.form['genre']
+    return redirect(url_for('genrequery', genre=selected_genre))
+
+#### End ChatGPT code ####
+
+@app.route("/genrequery/<genre>")
+def genrequery(genre):
+    rows = execute_query("""SELECT title
+            FROM genre JOIN movie_genres USING (genre_id) JOIN movie USING (movie_id)
+            WHERE genre_name = %s 
+            ORDER BY title""", (str(genre)))
+    return genres_html(rows, genre) 
 
 @app.route("/pricequerytextbox", methods = ['GET'])
 def price_form():
   return render_template('textbox.html', fieldname = "Price")
-
-@app.route("/pricequerytextbox", methods = ['POST'])
-def price_form_post():
-  text = request.form['text']
-  return viewprices(text)
 
 @app.route("/timequerytextbox", methods = ['GET'])
 def time_form():
