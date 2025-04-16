@@ -69,6 +69,14 @@ def display_html(rows):
     html += "</table></body>"
     return html
 
+def display_htmlr(rows):
+    html = ""
+    html += """<table><tr><th>Country Name</th>"""
+
+    for r in rows:
+        html += "<tr><td>" + str(r[0]) + "</td><td>"
+    html += "</table></body>"
+    return html
 
 @app.route("/viewdb")
 def viewdb():
@@ -77,20 +85,19 @@ def viewdb():
                          LIMIT 500""")
     return display_html(rows)
 
+@app.route("/cont")
+def cont():
+    rows = execute_query("""SELECT country_name
+                         FROM country
+                         """)
+    return display_htmlr(rows)
+
 @app.route("/pricequery/<price>")
 def viewprices(price):
     rows = execute_query("""select ArtistId, Artist.Name, Track.Name, UnitPrice, Milliseconds
             from Artist JOIN Album using (ArtistID) JOIN Track using (AlbumID)
             where UnitPrice = %s order by Track.Name 
             Limit 500""", (str(price)))
-    return display_html(rows) 
-
-@app.route("/timequery/<time>")
-def viewtime(time):
-    rows = execute_query("""select ArtistId, Artist.Name, Track.Name, UnitPrice, Milliseconds
-            from Artist JOIN Album using (ArtistID) JOIN Track using (AlbumID)
-            where Milliseconds > %s order by Track.Name 
-            Limit 500""", (str(time)))
     return display_html(rows) 
 
 from flask import request
@@ -107,11 +114,6 @@ def price_form_post():
 @app.route("/timequerytextbox", methods = ['GET'])
 def time_form():
   return render_template('textbox.html', fieldname = "Time")
-
-@app.route("/timequerytextbox", methods = ['POST'])
-def time_form_post():
-  text = request.form['text']
-  return viewtime(text)
 
 # these two lines of code should always be the last in the file
 if __name__ == '__main__':
