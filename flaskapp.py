@@ -1,5 +1,3 @@
-from flask import Flask
-from flask import render_template
 from flask import Flask, render_template, request, redirect, url_for, flash
 
 app = Flask(__name__)
@@ -8,38 +6,6 @@ app = Flask(__name__)
 def home():
     return render_template('home.html')
 
-
-@app.route ('/about')
-def about():
-    return '<h2>An about page!</h2>'
-
-"""
-from flask import render_template
-
-@app.route("/hello/<username>/")
-def hello_user(username):
-    return render_template('layout.html', name=username)
-
-@app.route('/repeat/<var>')
-def repeater(var):
-    result= ""
-    for i in range(10):
-        result += var
-    return result
-
-@app.route("/numchar/<var>")
-def numchar(var):
-    count = len(var)
-    return str(count)
-
-@app.route("/numvowels/<var>")
-def numvowels(var):
-    count = 0
-    for i in var.lower():
-        if i in ['a','e','i','o','u']:
-            count += 1
-    return str(count)
-"""
 import pymysql
 import creds
 
@@ -70,11 +36,23 @@ def display_html(rows):
     html += "</table></body>"
     return html
 
-#display the results from the genres query
-def genres_html(rows, genre):
+#display the results for a query
+def query_html(rows, query):
     html = ""
     html += '<p><a href="/">Back to Home</a></p>'
-    html += f"<h2>{genre} Movies</h2>"
+    html += f"<h2>{query} Movies</h2>"
+    html += "<table>"
+
+    for r in rows:
+        html += "<tr><td>" + str(r[0]) + "</td></tr>"
+    html += "</table></body>"
+    return html
+
+#display runtime query results
+def runtime_html(rows, time):
+    html = ""
+    html += '<p><a href="/">Back to Home</a></p>'
+    html += f"<h2>Movies shorter than {time} minuntes:</h2>"
     html += "<table>"
 
     for r in rows:
@@ -87,17 +65,17 @@ def genres_html(rows, genre):
 def viewdb():
     rows = execute_query("""SELECT movie_id, title, release_date, revenue, runtime
                          FROM movie
-                         LIMIT 500""")
+                         """)
     return display_html(rows)
+
+#I added all genres from the database into this list
+from genres import genre_list
 
 #### Start ChatGPT code ####
 # ChatGPT code to chose genre
 
-# I added all genres from the database into this list
-genre_list = [ "Adventure", "Fantasy", "Animation", "Drama", "Horror", "Action", "Comedy", "History", "Western", "Thriller", "Crime", "Documentary", "Science Fiction", "Mystery", "Music", "Romance", "Family", "War", "Foreign", "TV Movie" ]
-
 @app.route('/genrequery')
-def index():
+def genre_index():
     return render_template('select_genre.html', genres=genre_list)
 
 @app.route('/redirect_genre', methods=['POST'])
@@ -113,7 +91,44 @@ def genrequery(genre):
             FROM genre JOIN movie_genres USING (genre_id) JOIN movie USING (movie_id)
             WHERE genre_name = %s 
             ORDER BY title""", (str(genre)))
-    return genres_html(rows, genre) 
+    return query_html(rows, genre) 
+
+# List of languages stored in this python file
+from languages import language_list
+
+@app.route('/languagequery')
+def language_index():
+    return render_template('select_language.html', languages=language_list)
+
+@app.route('/redirect_language', methods=['POST'])
+def redirect_language():
+    selected_language = request.form['language']
+    return redirect(url_for('languagequery', language=selected_language))
+
+@app.route("/languagequery/<language>")
+def languagequery(language):
+    rows = execute_query("""SELECT title
+            FROM language JOIN movie_languages USING (language_id) JOIN movie USING (movie_id)
+            WHERE language_name = %s 
+            ORDER BY title""", (str(language)))
+    return query_html(rows, language) 
+    
+@app.route('/runtimequery')
+def runtime_index():
+    return render_template('runtime_query.html')
+
+@app.route("/redirect_runtime", methods=['POST'])
+def redirect_runtime():
+    time = request.form['time']
+    return redirect(url_for('runtimequery', time=time))
+
+@app.route("/runtimequery/<time>")
+def runtimequery(time):
+    rows = execute_query("""SELECT title
+            FROM movie 
+            WHERE runtime < %s 
+            ORDER BY title""", (str(time)))
+    return runtime_html(rows, time) 
 
 @app.route("/pricequerytextbox", methods = ['GET'])
 def price_form():

@@ -1,0 +1,17 @@
+{# ChatGPT generated template #}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Search by Runtime</title>
+</head>
+<body>
+    <h1>Enter Movie Runtime</h1>
+    <form action="{{ url_for('redirect_runtime') }}" method="post">
+        <label for="time">Runtime (in minutes):</label>
+        <input type="number" name="time" id="time" required>
+        <button type="submit">Search</button>
+    </form>
+</body>
+</html>
