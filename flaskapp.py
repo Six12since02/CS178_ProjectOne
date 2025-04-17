@@ -16,13 +16,14 @@ TABLE_NAME = "Reviews"
 dynamodb = boto3.resource('dynamodb', region_name="us-east-1")
 table = dynamodb.Table(TABLE_NAME)
 
-#display the sqlite query in a html table
+#display all movies
 def display_html(rows):
     html = ""
-    html += """<table><tr><th>MovieID</th><th>Title</th><th>Release Date</th><th>Revenue</th><th>Run Time</th></tr>"""
+    html += '<p><a href="/">Back to Home</a></p>'
+    html += """<table><tr><th>Title</th><th>Release Date</th><th>Revenue</th><th>Run Time</th><th>Budget</th><tr>"""
 
     for r in rows:
-        html += "<tr><td>" + str(r[0]) + "</td><td>" + str(r[1]) + "</td><td>" + str(r[2]) + "</td><td>" + str(r[3]) + "</td><td>" + str(r[4]) + "</td></tr>"
+        html += "<tr><td style='text-align:center'>" + str(r[0]) + "</td><td>" + str(r[1]) + "</td><td>" + str(r[2]) + "</td><td>" + str(r[3]) + "</td><td>" + str(r[4]) + "</td></tr>"
     html += "</table></body>"
     return html
 
@@ -53,12 +54,11 @@ def runtime_html(rows, time):
 
 @app.route("/viewdb")
 def viewdb():
-    rows = execute_query("""SELECT movie_id, title, release_date, revenue, runtime
-                         FROM movie
-                         """)
+    rows = execute_query("""SELECT title, release_date, revenue, runtime, budget
+                         FROM movie ORDER BY title""")
     return display_html(rows)
 
-#I added all genres from the database into this list
+# List of genres stored in this python file
 from genres import genre_list
 
 #### Start ChatGPT code ####
@@ -77,7 +77,7 @@ def redirect_genre():
 
 @app.route("/genrequery/<genre>")
 def genrequery(genre):
-    rows = execute_query("""SELECT title
+    rows = execute_query("""SELECT DISTINCT title
             FROM genre JOIN movie_genres USING (genre_id) JOIN movie USING (movie_id)
             WHERE genre_name = %s 
             ORDER BY title""", (str(genre)))
@@ -97,7 +97,7 @@ def redirect_language():
 
 @app.route("/languagequery/<language>")
 def languagequery(language):
-    rows = execute_query("""SELECT title
+    rows = execute_query("""SELECT DISTINCT title
             FROM language JOIN movie_languages USING (language_id) JOIN movie USING (movie_id)
             WHERE language_name = %s 
             ORDER BY title""", (str(language)))
@@ -114,76 +114,13 @@ def redirect_runtime():
 
 @app.route("/runtimequery/<time>")
 def runtimequery(time):
-    rows = execute_query("""SELECT title
+    rows = execute_query("""SELECT DISTINCT title
             FROM movie 
             WHERE runtime < %s 
             ORDER BY title""", (str(time)))
     return runtime_html(rows, time) 
 
-@app.route("/add_review", methods=["GET", "POST"])
-def add_review_redirect():
-    if request.method == "GET":
-        return render_template("ask_username.html")
-    
-    elif request.method == "POST":
-        username = request.form.get("username")
-        if username:
-            return redirect(url_for("add_review", username=username))
-        else:
-            return render_template("review_error.html", error="Username is required")
-
-@app.route("/add_review/<username>", methods=["GET", "POST"])
-def add_review(username):
-    try:
-        # Check if the user exists in DynamoDB
-        response = table.get_item(Key={"username": username})
-
-        if "Item" not in response:
-            return render_template("review_error.html", error="User not found")
-
-        if request.method == "GET":
-            return render_template("add_review.html", username=username)
-
-        elif request.method == "POST":
-            title = request.form.get("title")
-            rating = request.form.get("rating")
-            review_text = request.form.get("review_text")
-            spoiler = request.form.get("spoiler") == "yes"
-
-            if not all([title, rating, review_text]):
-                return render_template("review_error.html", error="Missing fields")
-
-            # Check if movie exists in SQL
-            result = execute_query("SELECT 1 FROM movie WHERE title = %s", (title,))
-            if not result:
-                return render_template("review_error.html", error="Movie not found")
-
-            # Construct new review
-            new_review = {
-                "M": {
-                    "title": {"S": title},
-                    "rating": {"N": str(rating)},
-                    "review_text": {"S": review_text},
-                    "spoiler": {"BOOL": spoiler}
-                }
-            }
-
-            # Append to user's reviews
-            table.update_item(
-                Key={"username": username},
-                UpdateExpression="SET reviews = list_append(if_not_exists(reviews, :empty), :r)",
-                ExpressionAttributeValues={
-                ":r": [new_review],
-                ":empty": []
-                },
-    ReturnValues="UPDATED_NEW"
-)
-            return render_template("review_success.html", username=username, title=title)
-
-    except ClientError as e:
-        return render_template("review_error.html", error=e.response["Error"]["Message"])
-    except Exception as e:
-        return render_template("review_error.html", error=str(e))
+from reviewscode import *
 
 # these two lines of code should always be the last in the file
 if __name__ == '__main__':

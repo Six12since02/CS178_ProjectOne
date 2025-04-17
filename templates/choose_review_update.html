@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head><title>Update Review</title></head>
+<body>
+  <h2>Update a Review for {{ username }}</h2>
+  <form method="POST">
+    <label>Movie Title:
+      <select name="title" required>
+        {% for t in titles %}
+          <option value="{{ t }}">{{ t }}</option>
+        {% endfor %}
+      </select>
+    </label><br><br>
+
+    <label>New Rating: <input type="number" name="rating" min="1" max="10" required></label><br>
+    <label>New Review Text:<br>
+      <textarea name="review_text" rows="4" cols="50" required></textarea>
+    </label><br>
+    <label>Contains Spoilers? 
+      <select name="spoiler">
+        <option value="no">No</option>
+        <option value="yes">Yes</option>
+      </select>
+    </label><br><br>
+
+    <input type="submit" value="Update Review">
+  </form>
+  <p><a href="/">Back to Home</a></p>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head><title>All Reviews</title></head>
+<body>
+  <h2>All User Reviews</h2>
+  {% if reviews %}
+  <table border="1" cellpadding="5">
+    <tr>
+      <th>Username</th>
+      <th>Movie Title</th>
+      <th>Rating</th>
+      <th>Review Text</th>
+      <th>Spoiler?</th>
+    </tr>
+    {% for r in reviews %}
+    <tr>
+      <td>{{ r.username }}</td>
+      <td>{{ r.title }}</td>
+      <td>{{ r.rating }}</td>
+      <td>{{ r.text }}</td>
+      <td>{{ "Yes" if r.spoiler else "No" }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+    <p>No reviews found.</p>
+  {% endif %}
+  <p><a href="/">Back to Home</a></p>
+</body>
+</html>
