@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 
 app = Flask(__name__)
 
@@ -6,25 +6,15 @@ app = Flask(__name__)
 def home():
     return render_template('home.html')
 
-import pymysql
-import creds
+from dbCode import *
 
-def get_conn():
-    conn = pymysql.connect(
-        host= creds.host,
-        user= creds.user, 
-        password = creds.password,
-        db=creds.db,
-        )
-    return conn
+import boto3
+from botocore.exceptions import ClientError
 
-def execute_query(query, args=()):
-    cur = get_conn().cursor()
-    cur.execute(query, args)
-    rows = cur.fetchall()
-    cur.close()
-    return rows
+TABLE_NAME = "Reviews"
 
+dynamodb = boto3.resource('dynamodb', region_name="us-east-1")
+table = dynamodb.Table(TABLE_NAME)
 
 #display the sqlite query in a html table
 def display_html(rows):
@@ -130,13 +120,70 @@ def runtimequery(time):
             ORDER BY title""", (str(time)))
     return runtime_html(rows, time) 
 
-@app.route("/pricequerytextbox", methods = ['GET'])
-def price_form():
-  return render_template('textbox.html', fieldname = "Price")
+@app.route("/add_review", methods=["GET", "POST"])
+def add_review_redirect():
+    if request.method == "GET":
+        return render_template("ask_username.html")
+    
+    elif request.method == "POST":
+        username = request.form.get("username")
+        if username:
+            return redirect(url_for("add_review", username=username))
+        else:
+            return render_template("review_error.html", error="Username is required")
 
-@app.route("/timequerytextbox", methods = ['GET'])
-def time_form():
-  return render_template('textbox.html', fieldname = "Time")
+@app.route("/add_review/<username>", methods=["GET", "POST"])
+def add_review(username):
+    try:
+        # Check if the user exists in DynamoDB
+        response = table.get_item(Key={"username": username})
+
+        if "Item" not in response:
+            return render_template("review_error.html", error="User not found")
+
+        if request.method == "GET":
+            return render_template("add_review.html", username=username)
+
+        elif request.method == "POST":
+            title = request.form.get("title")
+            rating = request.form.get("rating")
+            review_text = request.form.get("review_text")
+            spoiler = request.form.get("spoiler") == "yes"
+
+            if not all([title, rating, review_text]):
+                return render_template("review_error.html", error="Missing fields")
+
+            # Check if movie exists in SQL
+            result = execute_query("SELECT 1 FROM movie WHERE title = %s", (title,))
+            if not result:
+                return render_template("review_error.html", error="Movie not found")
+
+            # Construct new review
+            new_review = {
+                "M": {
+                    "title": {"S": title},
+                    "rating": {"N": str(rating)},
+                    "review_text": {"S": review_text},
+                    "spoiler": {"BOOL": spoiler}
+                }
+            }
+
+            # Append to user's reviews
+            table.update_item(
+                Key={"username": username},
+                UpdateExpression="SET reviews = list_append(if_not_exists(reviews, :empty), :r)",
+                ExpressionAttributeValues={
+                ":r": [new_review],
+                ":empty": []
+                },
+    ReturnValues="UPDATED_NEW"
+)
+            return render_template("review_success.html", username=username, title=title)
+
+    except ClientError as e:
+        return render_template("review_error.html", error=e.response["Error"]["Message"])
+    except Exception as e:
+        return render_template("review_error.html", error=str(e))
 
 # these two lines of code should always be the last in the file
 if __name__ == '__main__':
