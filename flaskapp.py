@@ -1,13 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
 
+# Displays the home page
 @app.route('/')
 def home():
     return render_template('home.html')
 
+# Connect to the MySQL/RDS instance
 from dbCode import *
 
+# Connect to the DynamoDB database
 import boto3
 from botocore.exceptions import ClientError
 
@@ -16,7 +19,7 @@ TABLE_NAME = "Reviews"
 dynamodb = boto3.resource('dynamodb', region_name="us-east-1")
 table = dynamodb.Table(TABLE_NAME)
 
-#display all movies
+# function to display all movies
 def display_html(rows):
     html = ""
     html += '<p><a href="/">Back to Home</a></p>'
@@ -27,7 +30,7 @@ def display_html(rows):
     html += "</table></body>"
     return html
 
-#display the results for a query
+# function to display the results for a query
 def query_html(rows, query):
     html = ""
     html += '<p><a href="/">Back to Home</a></p>'
@@ -39,7 +42,7 @@ def query_html(rows, query):
     html += "</table></body>"
     return html
 
-#display runtime query results
+# funtion to display runtime query results
 def runtime_html(rows, time):
     html = ""
     html += '<p><a href="/">Back to Home</a></p>'
@@ -51,7 +54,7 @@ def runtime_html(rows, time):
     html += "</table></body>"
     return html
 
-
+# Displays a list of all movies and some attributes
 @app.route("/viewdb")
 def viewdb():
     rows = execute_query("""SELECT title, release_date, revenue, runtime, budget
@@ -75,6 +78,7 @@ def redirect_genre():
 
 #### End ChatGPT code ####
 
+# Displays all movies of the chosen genre
 @app.route("/genrequery/<genre>")
 def genrequery(genre):
     rows = execute_query("""SELECT DISTINCT title
@@ -86,15 +90,18 @@ def genrequery(genre):
 # List of languages stored in this python file
 from languages import language_list
 
+# Displays the language selection form
 @app.route('/languagequery')
 def language_index():
     return render_template('select_language.html', languages=language_list)
 
+# Redirects to the results page
 @app.route('/redirect_language', methods=['POST'])
 def redirect_language():
     selected_language = request.form['language']
     return redirect(url_for('languagequery', language=selected_language))
 
+# Displays all movies of the chosen language
 @app.route("/languagequery/<language>")
 def languagequery(language):
     rows = execute_query("""SELECT DISTINCT title
@@ -102,16 +109,19 @@ def languagequery(language):
             WHERE language_name = %s 
             ORDER BY title""", (str(language)))
     return query_html(rows, language) 
-    
+
+# Displays the runtime selection page    
 @app.route('/runtimequery')
 def runtime_index():
     return render_template('runtime_query.html')
 
+# Redirects to the results page
 @app.route("/redirect_runtime", methods=['POST'])
 def redirect_runtime():
     time = request.form['time']
     return redirect(url_for('runtimequery', time=time))
 
+# Displays all movies shorter than the given runtime
 @app.route("/runtimequery/<time>")
 def runtimequery(time):
     rows = execute_query("""SELECT DISTINCT title
@@ -120,6 +130,7 @@ def runtimequery(time):
             ORDER BY title""", (str(time)))
     return runtime_html(rows, time) 
 
+# Imports all code for the reviews system
 from reviewscode import *
 
 # these two lines of code should always be the last in the file

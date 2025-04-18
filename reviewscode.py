@@ -1,5 +1,9 @@
 from flaskapp import *
 
+### Most of the code in this file is modified ChatGPT code ###
+
+# Prompt the user for a username
+# Then redirect to the add review page
 @app.route("/add_review", methods=["GET", "POST"])
 def add_review_redirect():
     if request.method == "GET":
@@ -12,6 +16,7 @@ def add_review_redirect():
         else:
             return render_template("review_error.html", error="Username is required")
 
+# Add the review to the database
 @app.route("/add_review/<username>", methods=["GET", "POST"])
 def add_review(username):
     try:
@@ -79,6 +84,9 @@ def add_review(username):
     except Exception as e:
         return render_template("review_error.html", error=str(e))
 
+
+# Prompt the user for a username
+# Then redirect to the delete review page
 @app.route("/delete_review", methods=["GET", "POST"])
 def delete_review_redirect():
     if request.method == "GET":
@@ -91,7 +99,7 @@ def delete_review_redirect():
         else:
             return render_template("review_error.html", error="Username is required")
 
-
+# Delete a review from the database
 @app.route("/delete_review/<username>", methods=["GET", "POST"])
 def delete_review(username):
     try:
@@ -143,6 +151,8 @@ def delete_review(username):
     except Exception as e:
         return render_template("review_error.html", error=str(e))
 
+# Prompt the user for a username
+# Then redirect to the update review page
 @app.route("/update_review", methods=["GET", "POST"])
 def update_review_redirect():
     if request.method == "GET":
@@ -155,6 +165,8 @@ def update_review_redirect():
         else:
             return render_template("review_error.html", error="Username is required")
 
+
+# Update a review in the database
 @app.route("/update_review/<username>", methods=["GET", "POST"])
 def update_review(username):
     try:
@@ -219,7 +231,8 @@ def update_review(username):
 
     except Exception as e:
         return render_template("review_error.html", error=str(e))
-    
+
+# Display all reviews   
 @app.route("/display_review", methods=["GET", "POST"])
 def all_reviews():
     if request.method == "GET":
@@ -258,7 +271,8 @@ def all_reviews():
 
         except Exception as e:
             return render_template("review_error.html", error=str(e))
-        
+
+# Add a new user to the database        
 @app.route("/new_user", methods=["GET", "POST"])
 def new_user():
     if request.method == "GET":
